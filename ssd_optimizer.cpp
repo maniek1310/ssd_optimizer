@@ -9,10 +9,6 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
 
     write_gui();
 
-    windows_console wc;
-
-    wc.send_cmd_command("wqeqwe", QStringList ("Asdasd"));
-
     /*windows_service ws;
 
     ws.find_service("WSearch");
@@ -47,14 +43,32 @@ void ssd_optimizer::write_gui()
     if(find_str(ahci, "AHCI")){
         ui->radioButton->setChecked(true);
         p_ahci.setColor(QPalette::WindowText, QColor(0, 170, 0));
-    }
-    else{
+    }else{
         ui->radioButton->setChecked(false);
         p_ahci.setColor(QPalette::WindowText, QColor(170, 0, 0));
     }
 
     ui->radioButton->setDisabled(true);
     ui->radioButton->setPalette(p_ahci);
+
+    QPalette p_trim;
+    windows_console wc;
+
+    QStringList trim;
+    trim << "behavior" << "query" << "DisableDeleteNotify";
+
+    QString s_trim = wc.read_cmd_command("fsutil.exe", trim);
+
+    if(find_str(s_trim, "DisableDeleteNotify = 0")){
+        ui->rb_trim->setChecked(true);
+        p_trim.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        ui->rb_trim->setChecked(false);
+        p_trim.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_trim->setDisabled(true);
+    ui->rb_trim->setPalette(p_trim);
 }
 
 void ssd_optimizer::on_pb_win_search_clicked()

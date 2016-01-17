@@ -19,7 +19,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>131</width>
+      <width>71</width>
       <height>21</height>
      </rect>
     </property>
@@ -231,6 +231,23 @@
      <string>Wyłącz</string>
     </property>
    </widget>
+   <widget class="QRadioButton" name="rb_trim">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>10</y>
+      <width>91</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TRIM</string>
+    </property>
+   </widget>
+   <zorder>rb_trim</zorder>
+   <zorder>radioButton</zorder>
+   <zorder>label</zorder>
+   <zorder>pb_win_search</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">

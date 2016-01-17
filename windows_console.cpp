@@ -5,37 +5,14 @@ windows_console::windows_console()
 
 }
 
-void windows_console::send_cmd_command(QString app, QStringList params)
+QString windows_console::read_cmd_command(QString app, QStringList params)
 {
+    QString p_stdout_task;
 
-    int status = 0;
+    process.start(app, params, QIODevice::ReadOnly);
+    process.waitForFinished(-1);
 
-    QString run = "fsutil.exe";
-    QStringList para;
-    para << "behavior" << "query" << "DisableDeleteNotify";
+    p_stdout_task = process.readAllStandardOutput();
 
-    connect(&process, SIGNAL(readyRead()), this, SLOT(readData()));
-    //connect(&process, SIGNAL(readyReadStandardError()), this, SLOT(readError()));
-
-    //process.open(QIODevice::ReadOnly);
-
-    status = process.execute(run, para);
-
-    process.waitForFinished();
-}
-
-void windows_console::readData()
-{
-    QString output(process.readAllStandardOutput());
-
-    qDebug() << "output : " << output;
-
-    QMessageBox::information(NULL, "test", output, QMessageBox::Yes);
-}
-
-void windows_console::readError()
-{
-    QString outerr(process.readAllStandardError());
-
-    qDebug() << "error : " << outerr;
+    return p_stdout_task;
 }

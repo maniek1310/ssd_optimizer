@@ -14,11 +14,7 @@ class windows_console : public QObject
     Q_OBJECT
 public:
     windows_console();
-    void send_cmd_command(QString app, QStringList params);
-
-public slots:
-    void readData();
-    void readError();
+    QString read_cmd_command(QString app, QStringList params);
 
 private:
     QProcess process;
