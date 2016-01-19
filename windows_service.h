@@ -16,6 +16,7 @@ public:
     bool find_service(QString name);
     bool start_service(QString name, bool status);
     bool enable_service(QString name, bool status);
+    bool state_service(QString name);
 };
 
 #endif // WINDOWS_SERVICE_H

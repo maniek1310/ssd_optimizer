@@ -109,3 +109,37 @@ bool windows_service::enable_service(QString name, bool status)
 
     return bResult;
 }
+
+bool windows_service::state_service(QString name)
+{
+    bool bResult = FALSE;
+
+    SC_HANDLE hServiceControlManager;
+    SC_HANDLE hService;
+
+    SERVICE_STATUS_PROCESS ssp;
+    DWORD bytesNeeded;
+
+    hServiceControlManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+
+    if(NULL != hServiceControlManager)
+    {
+        hService = OpenServiceA(hServiceControlManager, name.toStdString().c_str(), SC_MANAGER_ALL_ACCESS);
+
+        if(hService != NULL)
+        {
+            QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO, (LPBYTE) &ssp, sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded);
+
+            if(ssp.dwCurrentState == SERVICE_RUNNING)
+                return true;
+            else if(ssp.dwCurrentState == SERVICE_STOPPED)
+                return false;
+        }
+
+        CloseServiceHandle(hService);
+    }
+
+    CloseServiceHandle(hServiceControlManager);
+
+    return false;
+}

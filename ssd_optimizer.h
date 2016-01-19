@@ -26,6 +26,8 @@ public:
 private slots:
     void on_pb_win_search_clicked();
 
+    void on_pb_trim_clicked();
+
 private:
     Ui::ssd_optimizer *ui;
 };

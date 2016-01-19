@@ -14,13 +14,13 @@
    <string>ssd_optimizer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QRadioButton" name="radioButton">
+   <widget class="QRadioButton" name="rb_ahci">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>71</width>
-      <height>21</height>
+      <width>110</width>
+      <height>25</height>
      </rect>
     </property>
     <property name="palette">
@@ -202,20 +202,7 @@
      <bool>true</bool>
     </property>
     <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>50</y>
-      <width>111</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Windows Search</string>
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pb_win_search">
@@ -234,20 +221,50 @@
    <widget class="QRadioButton" name="rb_trim">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>10</y>
-      <width>91</width>
-      <height>21</height>
+      <x>10</x>
+      <y>90</y>
+      <width>110</width>
+      <height>25</height>
      </rect>
     </property>
     <property name="text">
      <string>TRIM</string>
     </property>
+    <property name="checked">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pb_trim">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>90</y>
+      <width>111</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Włącz</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="rb_win_search">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>110</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Windows Search</string>
+    </property>
    </widget>
    <zorder>rb_trim</zorder>
-   <zorder>radioButton</zorder>
-   <zorder>label</zorder>
+   <zorder>rb_ahci</zorder>
    <zorder>pb_win_search</zorder>
+   <zorder>pb_trim</zorder>
+   <zorder>rb_win_search</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
