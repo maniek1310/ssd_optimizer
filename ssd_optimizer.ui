@@ -208,7 +208,7 @@
    <widget class="QPushButton" name="pb_win_search">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>160</x>
       <y>50</y>
       <width>111</width>
       <height>25</height>
@@ -237,7 +237,7 @@
    <widget class="QPushButton" name="pb_trim">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>160</x>
       <y>90</y>
       <width>111</width>
       <height>25</height>
@@ -260,11 +260,67 @@
      <string>Windows Search</string>
     </property>
    </widget>
+   <widget class="QRadioButton" name="rb_defrag">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>130</y>
+      <width>141</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Defragmentator dysków</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pb_defrag">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>130</y>
+      <width>111</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Wyłącz</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="rb_przesuw_pocz">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>170</y>
+      <width>141</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Przesunięcie początkowe</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pb_przesuw_pocz">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>170</y>
+      <width>111</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Informacja</string>
+    </property>
+   </widget>
    <zorder>rb_trim</zorder>
    <zorder>rb_ahci</zorder>
    <zorder>pb_win_search</zorder>
    <zorder>pb_trim</zorder>
    <zorder>rb_win_search</zorder>
+   <zorder>rb_defrag</zorder>
+   <zorder>pb_defrag</zorder>
+   <zorder>rb_przesuw_pocz</zorder>
+   <zorder>pb_przesuw_pocz</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">

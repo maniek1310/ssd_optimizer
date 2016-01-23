@@ -28,8 +28,15 @@ private slots:
 
     void on_pb_trim_clicked();
 
+    void on_pb_defrag_clicked();
+
+    void on_pb_przesuw_pocz_clicked();
+
 private:
     Ui::ssd_optimizer *ui;
+    windows_wmi *ww;
+    QStringList* partition;
+    int size;
 };
 
 #endif // SSD_OPTIMIZER_H

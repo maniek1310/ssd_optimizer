@@ -7,7 +7,20 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ww->polacz_wmi();
+
     write_gui();
+
+    //qDebug() << ww->sprawdz("Win32_DiskPartition", L"StartingOffset", "string", "");
+    QStringList disk_offset = ww->sprawdz_array("Win32_DiskPartition", L"StartingOffset");
+
+    for(int i = 0; i < disk_offset.size(); i++)
+    {
+        int dzielna = QString(disk_offset.at(i)).toInt() % 4096;
+        qDebug() << "dzielna z " << disk_offset.at(i) << " wynosi : " << dzielna;
+    }
+
+    ww->rozlacz_wmi();
 }
 
 ssd_optimizer::~ssd_optimizer()
@@ -31,8 +44,7 @@ bool ssd_optimizer::find_str(QString txt, QString find_txt)
 void ssd_optimizer::write_gui()
 {
     QPalette p_ahci;
-    windows_wmi ww;
-    QString ahci = ww.sprawdz("Win32_IDEController", L"Caption", "string");
+    QString ahci = ww->sprawdz("Win32_IDEController", L"Caption");
 
     if(find_str(ahci, "AHCI")){
         ui->rb_ahci->setChecked(true);
@@ -63,6 +75,24 @@ void ssd_optimizer::write_gui()
     ui->rb_win_search->setDisabled(true);
     ui->rb_win_search->setPalette(p_win_search);
 
+    QPalette p_defrag;
+    bool state_defrag = ws.state_service("defragsvc");
+
+    QStringList service_defrag_state = ww->sprawdz_array("Win32_Service", L"StartMode", "Name = \"defragsvc\"");
+
+    if(state_defrag == true || service_defrag_state[0] == "Manual" || service_defrag_state[0] == "Auto"){
+        ui->rb_defrag->setChecked(false);
+        ui->pb_defrag->setEnabled(true);
+        p_defrag.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }else if(state_defrag == false){
+        ui->rb_defrag->setChecked(true);
+        ui->pb_defrag->setEnabled(false);
+        p_defrag.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }
+
+    ui->rb_defrag->setDisabled(true);
+    ui->rb_defrag->setPalette(p_defrag);
+
     QPalette p_trim;
     windows_console wc;
 
@@ -77,11 +107,50 @@ void ssd_optimizer::write_gui()
         p_trim.setColor(QPalette::WindowText, QColor(0, 170, 0));
     }else{
         ui->rb_trim->setChecked(false);
+        ui->pb_trim->setEnabled(true);
         p_trim.setColor(QPalette::WindowText, QColor(170, 0, 0));
     }
 
     ui->rb_trim->setDisabled(true);
     ui->rb_trim->setPalette(p_trim);
+
+    // Przesunięcie względem początku dysku
+
+    QPalette p_przesuw_pocz;
+    QStringList partition_name = ww->sprawdz_array("Win32_DiskPartition", L"Name");
+    QStringList partition_size = ww->sprawdz_array("Win32_DiskPartition", L"Size");
+    QStringList partition_offset = ww->sprawdz_array("Win32_DiskPartition", L"StartingOffset");
+    partition = new QStringList[partition_name.size()];
+    size = partition_name.size();
+
+    bool b_offset = true;
+
+    for(int i = 0; i < partition_name.size(); i++)
+    {
+        int offset = QString(partition_offset.at(i)).toInt() % 4096;
+
+        if(b_offset == true){
+            if(offset != 0)
+                b_offset = false;
+        }
+
+        partition[i] << partition_name[i] << partition_size[i] << QString::number(offset);
+
+        qDebug() << i << " : " << partition[i] << " zmienna b_offset to : " << b_offset;
+    }
+
+    if(b_offset){
+        ui->rb_przesuw_pocz->setChecked(true);
+        ui->pb_przesuw_pocz->setEnabled(false);
+        p_przesuw_pocz.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        ui->rb_przesuw_pocz->setChecked(false);
+        ui->pb_przesuw_pocz->setEnabled(true);
+        p_przesuw_pocz.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_przesuw_pocz->setDisabled(true);
+    ui->rb_przesuw_pocz->setPalette(p_przesuw_pocz);
 }
 
 void ssd_optimizer::on_pb_win_search_clicked()
@@ -128,4 +197,62 @@ void ssd_optimizer::on_pb_trim_clicked()
 
     ui->rb_trim->setDisabled(true);
     ui->rb_trim->setPalette(p_trim);
+}
+
+void ssd_optimizer::on_pb_defrag_clicked()
+{
+    QPalette p_defrag;
+    windows_service ws;
+
+    ws.enable_service("defragsvc", false);
+    ws.start_service("defragsvc", false);
+
+    bool state_defrag = ws.state_service("defragsvc");
+
+    if(state_defrag == true){
+        QMessageBox::information(this, "SSD Optimizer", "Nie udało się wyłączyć usługi Optymalizacji Dysków", QMessageBox::Ok);
+    }else if(state_defrag == false){
+        ui->rb_defrag->setChecked(true);
+        ui->pb_defrag->setEnabled(false);
+        p_defrag.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }
+
+    ui->rb_defrag->setDisabled(true);
+    ui->rb_defrag->setPalette(p_defrag);
+}
+
+void ssd_optimizer::on_pb_przesuw_pocz_clicked()
+{
+    QString text = "Któraś z partycji nie jest prawidłowo sformatowana.\n"
+                   "Problem dotyczy partycji, której offset jest większy niż 0.\n\n";
+
+    for(int i = 0; i < size; i++)
+    {
+        QString size_partition;
+
+        ULONGLONG size_partition_long = (QString(partition[i].at(1)).toULongLong());
+        if(size_partition_long > 1073741823){
+            size_partition_long /= 1073741824;
+
+            size_partition = QString::number(size_partition_long) + " GB";
+        }else{
+            size_partition_long /= 1048576;
+
+            size_partition = QString::number(size_partition_long) + " MB";
+        }
+
+        qDebug() << size_partition;
+
+        text += "Nazwa partycji : ";
+        text += partition[i].at(0);
+        text += " Rozmiar partycji : ";
+        text += size_partition;
+        text += " Offset : ";
+        text += partition[i].at(2);
+        text += "\n\n";
+    }
+
+    qDebug() << text;
+
+    QMessageBox::information(this, "SSD Optimizer", text, QMessageBox::Ok);
 }
