@@ -21,6 +21,7 @@ public:
     explicit ssd_optimizer(QWidget *parent = 0);
     ~ssd_optimizer();
     bool find_str(QString txt, QString find_txt);
+    QString calc_size(ULONGLONG size);
     void write_gui();
 
 private slots:

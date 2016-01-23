@@ -28,3 +28,8 @@ HEADERS  += ssd_optimizer.h \
 FORMS    += ssd_optimizer.ui
 
 win32: QMAKE_CXXFLAGS_RELEASE -= -Zc:strictStrings
+
+win32 {
+    CONFIG += embed_manifest_exe
+    QMAKE_LFLAGS_WINDOWS += /MANIFESTUAC:level=\'requireAdministrator\'
+}

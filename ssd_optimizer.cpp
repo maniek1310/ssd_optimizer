@@ -41,6 +41,20 @@ bool ssd_optimizer::find_str(QString txt, QString find_txt)
     return find;
 }
 
+QString ssd_optimizer::calc_size(ULONGLONG size)
+{
+    QString size_return;
+
+    if(size > ((1024 * 1024 * 1024) - 1))
+        size_return = QString::number(((size / 1024) / 1024) / 1024) + " GB";
+    else if(size > ((1024 * 1024)) - 1)
+        size_return = QString::number((size / 1024) / 1024) + " MB";
+    else if(size > (1024 - 1))
+        size_return = QString::number(size / 1024) + " KB";
+
+    return size_return;
+}
+
 void ssd_optimizer::write_gui()
 {
     QPalette p_ahci;
@@ -228,20 +242,7 @@ void ssd_optimizer::on_pb_przesuw_pocz_clicked()
 
     for(int i = 0; i < size; i++)
     {
-        QString size_partition;
-
-        ULONGLONG size_partition_long = (QString(partition[i].at(1)).toULongLong());
-        if(size_partition_long > 1073741823){
-            size_partition_long /= 1073741824;
-
-            size_partition = QString::number(size_partition_long) + " GB";
-        }else{
-            size_partition_long /= 1048576;
-
-            size_partition = QString::number(size_partition_long) + " MB";
-        }
-
-        qDebug() << size_partition;
+        QString size_partition = calc_size(QString(partition[i].at(1)).toULongLong());
 
         text += "Nazwa partycji : ";
         text += partition[i].at(0);
@@ -251,8 +252,6 @@ void ssd_optimizer::on_pb_przesuw_pocz_clicked()
         text += partition[i].at(2);
         text += "\n\n";
     }
-
-    qDebug() << text;
 
     QMessageBox::information(this, "SSD Optimizer", text, QMessageBox::Ok);
 }
