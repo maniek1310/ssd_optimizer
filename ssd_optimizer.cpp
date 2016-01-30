@@ -7,6 +7,11 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    windows_drive_identifiaction wdi;
+    qDebug() << wdi.device_adapter_property();
+    qDebug() << (wdi.device_trim_property('C') ? "TRIM" : "NIE MA TRIM");
+    qDebug() << wdi.device_partition_info(IPT_PartitionLength, 'C', 3);
+
     ww->polacz_wmi();
 
     write_gui();

@@ -8,6 +8,7 @@
 #include "windows_registry.h"
 #include "windows_console.h"
 #include "windows_wmi.h"
+#include "windows_drive_identifiaction.h"
 
 namespace Ui {
 class ssd_optimizer;

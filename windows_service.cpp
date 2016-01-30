@@ -112,8 +112,6 @@ bool windows_service::enable_service(QString name, bool status)
 
 bool windows_service::state_service(QString name)
 {
-    bool bResult = FALSE;
-
     SC_HANDLE hServiceControlManager;
     SC_HANDLE hService;
 
