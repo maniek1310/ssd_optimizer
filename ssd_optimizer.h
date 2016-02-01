@@ -2,6 +2,8 @@
 #define SSD_OPTIMIZER_H
 
 #include <QMainWindow>
+#include <QStandardItemModel>
+#include <QTreeView>
 #include <QDebug>
 
 #include "windows_service.h"
@@ -24,6 +26,7 @@ public:
     bool find_str(QString txt, QString find_txt);
     QString calc_size(ULONGLONG size);
     void write_gui();
+    QStandardItemModel *createModel(QObject* parent = 0);
 
 private slots:
     void on_pb_win_search_clicked();

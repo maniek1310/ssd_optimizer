@@ -24,7 +24,7 @@ windows_drive_identifiaction::windows_drive_identifiaction()
 
 }
 
-QString windows_drive_identifiaction::device_adapter_property(char partitions)
+QString windows_drive_identifiaction::device_adapter_property(LPCWSTR disks)
 {
     DWORD bytesReturned;
     HANDLE hDevice;
@@ -32,15 +32,15 @@ QString windows_drive_identifiaction::device_adapter_property(char partitions)
 
     QString busType;
 
-    std::wstring logicalDrive = L"\\\\.\\";
+    /*std::wstring logicalDrive = L"\\\\.\\";
     wchar_t drive[3];
     drive[0] = partitions;
     drive[1] = L':';
     drive[2] = L'\0';
-    logicalDrive.append(drive);
+    logicalDrive.append(drive);*/
 
     hDevice = CreateFile(
-                logicalDrive.c_str(),
+                disks,
                 0,
                 0,
                 NULL,
@@ -127,22 +127,23 @@ QString windows_drive_identifiaction::device_adapter_property(char partitions)
     return busType;
 }
 
-bool windows_drive_identifiaction::device_trim_property(char partitions)
+bool windows_drive_identifiaction::device_trim_property(LPCWSTR disks)
 {
     DWORD bytesReturned;
     HANDLE hDevice;
 
     bool trim = false;
 
-    std::wstring logicalDrive = L"\\\\.\\";
+    /*std::wstring logicalDrive = L"\\\\.\\";
     wchar_t drive[3];
-    drive[0] = partitions;
+    drive[0] = disks;
     drive[1] = L':';
     drive[2] = L'\0';
     logicalDrive.append(drive);
+    */
 
     hDevice = CreateFile(
-                logicalDrive.c_str(),
+                disks,
                 0,
                 0,
                 NULL,
@@ -169,21 +170,21 @@ bool windows_drive_identifiaction::device_trim_property(char partitions)
     return trim;
 }
 
-ULONGLONG windows_drive_identifiaction::device_partition_info(int type, char partitions, int nr_partitions)
+ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR disks, int nr_partitions)
 {
     // "\\\\.\\PhysicalDrive0"
     // L"\\\\.\\C:"
 
-    std::wstring logicalDrive = L"\\\\.\\";
+    /*std::wstring logicalDrive = L"\\\\.\\";
     wchar_t drive[3];
     drive[0] = partitions;
     drive[1] = L':';
     drive[2] = L'\0';
-    logicalDrive.append(drive);
+    logicalDrive.append(drive);*/
 
     ULONGLONG info_return;
 
-    HANDLE hDevice = CreateFile(logicalDrive.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, 0);
+    HANDLE hDevice = CreateFile(disks, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, 0);
     if(hDevice != INVALID_HANDLE_VALUE)
     {
         unique_ptr<std::remove_pointer<HANDLE>::type, handle_deleter> uhDevice(hDevice);

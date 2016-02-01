@@ -8,9 +8,9 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
     ui->setupUi(this);
 
     windows_drive_identifiaction wdi;
-    qDebug() << wdi.device_adapter_property();
-    qDebug() << (wdi.device_trim_property('C') ? "TRIM" : "NIE MA TRIM");
-    qDebug() << wdi.device_partition_info(IPT_PartitionLength, 'C', 3);
+    //qDebug() << wdi.device_adapter_property();
+    //qDebug() << (wdi.device_trim_property(L"\\\\.\\PHYSICALDRIVE0") ? "TRIM" : "Don't TRIM");
+    //qDebug() << wdi.device_partition_info(IPT_PartitionLength, 'C', 3);
 
     ww->polacz_wmi();
 
@@ -62,6 +62,10 @@ QString ssd_optimizer::calc_size(ULONGLONG size)
 
 void ssd_optimizer::write_gui()
 {
+    QStandardItemModel* model = createModel(this);
+
+    ui->treeView->setModel(model);
+
     QPalette p_ahci;
     QString ahci = ww->sprawdz("Win32_IDEController", L"Caption");
 
@@ -170,6 +174,75 @@ void ssd_optimizer::write_gui()
 
     ui->rb_przesuw_pocz->setDisabled(true);
     ui->rb_przesuw_pocz->setPalette(p_przesuw_pocz);
+}
+
+QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
+{
+    QStandardItemModel* model = new QStandardItemModel(parent);
+
+    QStringList disks_name = ww->sprawdz_array("Win32_DiskDrive", L"Model");
+    QStringList disks_device_id = ww->sprawdz_array("Win32_DiskDrive", L"DeviceID");
+    QStringList disks_size = ww->sprawdz_array("Win32_DiskDrive", L"Size");
+    QStringList disks_serial_number = ww->sprawdz_array("Win32_DiskDrive", L"SerialNumber");
+    QStringList disks_firmware_revision = ww->sprawdz_array("Win32_DiskDrive", L"FirmwareRevision");
+    QStringList disks_total_cylinders = ww->sprawdz_array("Win32_DiskDrive", L"TotalCylinders");
+    QStringList disks_total_sectors = ww->sprawdz_array("Win32_DiskDrive", L"TotalSectors");
+    QStringList disks_total_tracks = ww->sprawdz_array("Win32_DiskDrive", L"TotalTracks");
+    QStringList disks_tracks_per_cylinder = ww->sprawdz_array("Win32_DiskDrive", L"TotalSectors");
+    QStringList disks_scsi_bus = ww->sprawdz_array("Win32_DiskDrive", L"SCSIBus");
+
+    windows_drive_identifiaction wdi;
+
+    int k = 0;
+
+    for(int i = 0; i < disks_device_id.size(); i++)
+    {
+        if(wdi.device_trim_property((const wchar_t*) QString(disks_device_id.at(i)).utf16()) == true)
+        {
+            ULONGLONG partition_style = wdi.device_partition_info(IPT_PartitionStyle, (const wchar_t*) QString(disks_device_id.at(i)).utf16());
+            QString s_partition_style;
+
+            if(partition_style == 0)
+                s_partition_style = "MBR";
+            else if(partition_style = 1)
+                s_partition_style = "GPT";
+            else if(partition_style = 2)
+                s_partition_style = "RAW";
+
+            QStandardItem* disk_name = new QStandardItem(disks_name.at(i));
+            QStandardItem* disk_size = new QStandardItem(QString("Rozmiar dysku : " + calc_size(QString(disks_size.at(i)).toULongLong())));
+            QStandardItem* disk_id   = new QStandardItem(QString("Identyfikator : " + disks_device_id.at(i)));
+            QStandardItem* disk_serial_number = new QStandardItem(QString("Numer seryjny : " + disks_serial_number.at(i)));
+            QStandardItem* disk_firmware_revision = new QStandardItem(QString("Wersja Firmware : " + disks_firmware_revision.at(i)));
+            QStandardItem* disk_style = new QStandardItem(QString("Rodzaj partycjonowania : " + s_partition_style));
+            QStandardItem* disk_bus_type = new QStandardItem(QString("Typ złącza : " + wdi.device_adapter_property((const wchar_t*) QString(disks_device_id.at(i)).utf16())));
+            QStandardItem* disk_total_cylinders = new QStandardItem(QString("Całkowita liczba cylindrów : " + disks_total_cylinders.at(i)));
+            QStandardItem* disk_total_sectors = new QStandardItem(QString("Całkowita liczba sektorów : " + disks_total_sectors.at(i)));
+            QStandardItem* disk_total_tracks = new QStandardItem(QString("Całkowita liczba ścieżek : " + disks_total_tracks.at(i)));
+            QStandardItem* disk_tracks_per_cylinder = new QStandardItem(QString("Ścieżki / cylinder : " + disks_tracks_per_cylinder.at(i)));
+            QStandardItem* disk_scsi_bus = new QStandardItem(QString("Port złącza : " + disks_scsi_bus.at(i)));
+
+            disk_name->appendRow(disk_size);
+            disk_name->appendRow(disk_id);
+            disk_name->appendRow(disk_serial_number);
+            disk_name->appendRow(disk_firmware_revision);
+            disk_name->appendRow(disk_style);
+            disk_name->appendRow(disk_bus_type);
+            disk_name->appendRow(disk_scsi_bus);
+            disk_name->appendRow(disk_total_cylinders);
+            disk_name->appendRow(disk_total_sectors);
+            disk_name->appendRow(disk_total_tracks);
+            disk_name->appendRow(disk_tracks_per_cylinder);
+
+            model->setItem(k, 0, disk_name);
+
+            k += 2;
+        }
+    }
+
+    model->setHorizontalHeaderItem(0, new QStandardItem("Nazwa"));
+
+    return model;
 }
 
 void ssd_optimizer::on_pb_win_search_clicked()

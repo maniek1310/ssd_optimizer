@@ -42,9 +42,9 @@ private:
 
 public:
     windows_drive_identifiaction();
-    QString device_adapter_property(char partitions = 'C');
-    bool device_trim_property(char partitions = 'C');
-    ULONGLONG device_partition_info(int type, char partitions = 'C', int nr_partitions = 0);
+    QString device_adapter_property(LPCWSTR disks = L"\\\\.\\PhysicalDrive0");
+    bool device_trim_property(LPCWSTR disks = L"\\\\.\\PhysicalDrive0");
+    ULONGLONG device_partition_info(int type, LPCWSTR disks = L"\\\\.\\PhysicalDrive0", int nr_partitions = 0);
 };
 
 #endif // WINDOWS_DRIVE_IDENTIFIACTION_H
