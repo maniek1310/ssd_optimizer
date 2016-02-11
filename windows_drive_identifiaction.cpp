@@ -250,3 +250,56 @@ ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR 
 
     return info_return;
 }
+
+int windows_drive_identifiaction::get_index_disk_for_partition(LPCWSTR partition)
+{
+    HANDLE hHandle = CreateFileW(partition,
+                                 GENERIC_READ | GENERIC_WRITE,
+                                 FILE_SHARE_WRITE | FILE_SHARE_READ,
+                                 NULL,
+                                 OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL,
+                                 NULL);
+
+    if(hHandle == INVALID_HANDLE_VALUE)
+    {
+        qDebug() << "Open failed : " << partition;
+
+        return -1;
+    }
+
+    VOLUME_DISK_EXTENTS volumeDiskExtents;
+    DWORD bytes_ret = 0;
+    BOOL bResult = DeviceIoControl(hHandle,
+                                   IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                                   NULL,
+                                   0,
+                                   &volumeDiskExtents,
+                                   sizeof(volumeDiskExtents),
+                                   &bytes_ret,
+                                   NULL);
+
+    CloseHandle(hHandle);
+
+    if(!bResult)
+    {
+        qDebug() << "Failed to issue the control code !";
+
+        return -1;
+    }
+
+    qDebug() << "The below is a information about";
+
+    int index_disk = -1;
+
+    for(DWORD n = 0; n < volumeDiskExtents.NumberOfDiskExtents; ++n)
+    {
+        PDISK_EXTENT pDiskExtent = &volumeDiskExtents.Extents[n];
+
+        qDebug() << "Disk number : " << pDiskExtent->DiskNumber;
+
+        index_disk = pDiskExtent->DiskNumber;
+    }
+
+    return index_disk;
+}

@@ -18,14 +18,16 @@ SOURCES += main.cpp\
     windows_registry.cpp \
     windows_console.cpp \
     windows_wmi.cpp \
-    windows_drive_identifiaction.cpp
+    windows_drive_identifiaction.cpp \
+    organization_project.cpp
 
 HEADERS  += ssd_optimizer.h \
     windows_service.h \
     windows_registry.h \
     windows_console.h \
     windows_wmi.h \
-    windows_drive_identifiaction.h
+    windows_drive_identifiaction.h \
+    organization_project.h
 
 FORMS    += ssd_optimizer.ui
 

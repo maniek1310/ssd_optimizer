@@ -8,6 +8,7 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
     ui->setupUi(this);
 
     windows_drive_identifiaction wdi;
+    qDebug() << "INDEX DISK FOR PARTITION : " << wdi.get_index_disk_for_partition(L"\\\\?\\Volume{78c0eed4-4d1a-45d9-8204-41fbe98a3b1a}");
     //qDebug() << wdi.device_adapter_property();
     //qDebug() << (wdi.device_trim_property(L"\\\\.\\PHYSICALDRIVE0") ? "TRIM" : "Don't TRIM");
     //qDebug() << wdi.device_partition_info(IPT_PartitionLength, 'C', 3);
@@ -190,15 +191,43 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
     QStringList disks_total_tracks = ww->sprawdz_array("Win32_DiskDrive", L"TotalTracks");
     QStringList disks_tracks_per_cylinder = ww->sprawdz_array("Win32_DiskDrive", L"TotalSectors");
     QStringList disks_scsi_bus = ww->sprawdz_array("Win32_DiskDrive", L"SCSIBus");
+    QStringList disks_index = ww->sprawdz_array("Win32_DiskDrive", L"Index");
+
+    QStringList partitions_caption = ww->sprawdz_array("Win32_Volume", L"Caption", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_drive_letter = ww->sprawdz_array("Win32_Volume", L"DriveLetter", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_file_system = ww->sprawdz_array("Win32_Volume", L"FileSystem", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_free_space = ww->sprawdz_array("Win32_Volume", L"FreeSpace", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_total_space = ww->sprawdz_array("Win32_Volume", L"Capacity", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_label = ww->sprawdz_array("Win32_Volume", L"Label", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    QStringList partitions_drive_index;
 
     windows_drive_identifiaction wdi;
+
+    for(int i = 0; i < partitions_caption.size(); i++)
+    {
+        QString remove_slash = partitions_caption.at(i);
+        remove_slash.replace("\\\\?\\", "\\");
+        remove_slash.replace("\\", "");
+
+        QString locate_partition;
+
+        if(find_str(remove_slash, "Volume") == true)
+            locate_partition = "\\\\?\\" + remove_slash;
+        else
+            locate_partition = "\\\\.\\" + remove_slash;
+
+        qDebug() << locate_partition;
+
+        partitions_drive_index << QString::number(wdi.get_index_disk_for_partition((const wchar_t*) locate_partition.utf16()));
+        qDebug() << partitions_drive_index[i];
+    }
 
     int k = 0;
 
     for(int i = 0; i < disks_device_id.size(); i++)
     {
-        if(wdi.device_trim_property((const wchar_t*) QString(disks_device_id.at(i)).utf16()) == true)
-        {
+        //if(wdi.device_trim_property((const wchar_t*) QString(disks_device_id.at(i)).utf16()) == true)
+        //{
             ULONGLONG partition_style = wdi.device_partition_info(IPT_PartitionStyle, (const wchar_t*) QString(disks_device_id.at(i)).utf16());
             QString s_partition_style;
 
@@ -221,6 +250,9 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
             QStandardItem* disk_total_tracks = new QStandardItem(QString("Całkowita liczba ścieżek : " + disks_total_tracks.at(i)));
             QStandardItem* disk_tracks_per_cylinder = new QStandardItem(QString("Ścieżki / cylinder : " + disks_tracks_per_cylinder.at(i)));
             QStandardItem* disk_scsi_bus = new QStandardItem(QString("Port złącza : " + disks_scsi_bus.at(i)));
+            QStandardItem* disk_partitions = new QStandardItem("Partycje");
+
+            QStandardItem* clear_line = new QStandardItem("");
 
             disk_name->appendRow(disk_size);
             disk_name->appendRow(disk_id);
@@ -234,10 +266,36 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
             disk_name->appendRow(disk_total_tracks);
             disk_name->appendRow(disk_tracks_per_cylinder);
 
+            disk_name->appendRow(clear_line);
+
+            disk_name->appendRow(disk_partitions);
+
+            for(int j = 0; j < partitions_caption.size(); j++)
+            {
+                if(QString(partitions_drive_index.at(j)).toInt() == QString(disks_index.at(i)).toInt())
+                {
+                    QStandardItem* partition_caption = new QStandardItem("Identyfikator partycji : " + partitions_caption.at(j));
+                    QStandardItem* partition_drive_letter = new QStandardItem("Litera dysku : " + partitions_drive_letter.at(j));
+                    QStandardItem* partition_file_system = new QStandardItem("System plików : " + partitions_file_system.at(j));
+                    QStandardItem* partition_free_space = new QStandardItem("Wolne miejsce : " + calc_size(QString(partitions_free_space.at(j)).toULongLong()));
+                    QStandardItem* partition_total_space = new QStandardItem("Całkowita powierzchnia : " + calc_size(QString(partitions_total_space.at(j)).toULongLong()));
+                    QStandardItem* partition_label = new QStandardItem("Nazwa woluminu : " + partitions_label.at(j));
+
+                    disk_partitions->appendRow(partition_caption);
+                    disk_partitions->appendRow(partition_drive_letter);
+                    disk_partitions->appendRow(partition_file_system);
+                    disk_partitions->appendRow(partition_free_space);
+                    disk_partitions->appendRow(partition_total_space);
+                    disk_partitions->appendRow(partition_label);
+
+                    disk_partitions->appendRow(clear_line);
+                }
+            }
+
             model->setItem(k, 0, disk_name);
 
             k += 2;
-        }
+        //}
     }
 
     model->setHorizontalHeaderItem(0, new QStandardItem("Nazwa"));

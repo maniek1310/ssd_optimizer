@@ -18,6 +18,10 @@
 #define StorageDeviceTrimProperty 8
 #endif
 
+#define IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS \
+    CTL_CODE(IOCTL_VOLUME_BASE, 0, \
+    METHOD_BUFFERED, FILE_ANY_ACCESS)
+
 typedef enum _INFO_PARTITION_TYPE {
     IPT_BytesPerSector = 0x00,
     IPT_Cylinders,
@@ -45,6 +49,7 @@ public:
     QString device_adapter_property(LPCWSTR disks = L"\\\\.\\PhysicalDrive0");
     bool device_trim_property(LPCWSTR disks = L"\\\\.\\PhysicalDrive0");
     ULONGLONG device_partition_info(int type, LPCWSTR disks = L"\\\\.\\PhysicalDrive0", int nr_partitions = 0);
+    int get_index_disk_for_partition(LPCWSTR partition = L"\\\\.\\C:");
 };
 
 #endif // WINDOWS_DRIVE_IDENTIFIACTION_H

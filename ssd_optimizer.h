@@ -12,6 +12,8 @@
 #include "windows_wmi.h"
 #include "windows_drive_identifiaction.h"
 
+//#include "organization_project.h"
+
 namespace Ui {
 class ssd_optimizer;
 }
