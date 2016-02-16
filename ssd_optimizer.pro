@@ -11,6 +11,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = ssd_optimizer
 TEMPLATE = app
 
+DEFINES += QT_MESSAGELOGCONTEXT
+
 
 SOURCES += main.cpp\
         ssd_optimizer.cpp \

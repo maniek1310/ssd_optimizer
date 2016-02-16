@@ -20,8 +20,6 @@ bool windows_service::find_service(QString name)
 
         if(NULL != hService){
             find = true;
-            qDebug() << "Usługa istnieje";
-
         }else{
             find = false;
             qDebug() << "Błąd : " << GetLastError();
@@ -58,16 +56,12 @@ bool windows_service::start_service(QString name, bool status)
             if(ssp.dwCurrentState == SERVICE_RUNNING && status == false){ // Zatrzymanie usługi
                 bResult = ControlService(hService, SERVICE_CONTROL_STOP, (LPSERVICE_STATUS) &ssp);
 
-                if(bResult)
-                    qDebug() << "Usługa zatrzymana";
-                else
+                if(!bResult)
                     qDebug() << "Nie można zatrzymać usługi";
             }else if(ssp.dwCurrentState == SERVICE_STOPPED && status == true){ // Uruchomienie usługi
                 bResult = StartService(hService, NULL, NULL);
 
-                if(bResult)
-                    qDebug() << "Usługa uruchomiona";
-                else
+                if(!bResult)
                     qDebug() << "Nie można uruchomić usługi";
             }
 

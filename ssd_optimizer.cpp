@@ -1,32 +1,66 @@
 #include "ssd_optimizer.h"
 #include "ui_ssd_optimizer.h"
 
+#include <QtMsgHandler>
+#include <QMessageLogContext>
+
 ssd_optimizer::ssd_optimizer(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::ssd_optimizer)
 {
     ui->setupUi(this);
 
-    windows_drive_identifiaction wdi;
-    qDebug() << "INDEX DISK FOR PARTITION : " << wdi.get_index_disk_for_partition(L"\\\\?\\Volume{78c0eed4-4d1a-45d9-8204-41fbe98a3b1a}");
-    //qDebug() << wdi.device_adapter_property();
-    //qDebug() << (wdi.device_trim_property(L"\\\\.\\PHYSICALDRIVE0") ? "TRIM" : "Don't TRIM");
-    //qDebug() << wdi.device_partition_info(IPT_PartitionLength, 'C', 3);
+    if(QFile::exists("log.txt"))
+        QFile::remove("log.txt");
+
+    qInstallMessageHandler(verboseMessageHandler);
 
     ww->polacz_wmi();
 
     write_gui();
 
-    //qDebug() << ww->sprawdz("Win32_DiskPartition", L"StartingOffset", "string", "");
-    QStringList disk_offset = ww->sprawdz_array("Win32_DiskPartition", L"StartingOffset");
+    ww->rozlacz_wmi();
+}
 
-    for(int i = 0; i < disk_offset.size(); i++)
+void verboseMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QFile log_file("log.txt");
+
+    if(log_file.open(QIODevice::Append | QIODevice::Text))
     {
-        int dzielna = QString(disk_offset.at(i)).toInt() % 4096;
-        qDebug() << "dzielna z " << disk_offset.at(i) << " wynosi : " << dzielna;
+        static const char* typeStr[] = {"[   Debug]", "[ Warning]", "[Critical]", "[   Fatal]", "[    Info]" };
+
+        if(type <= QtInfoMsg)
+        {
+            QByteArray localMsg = msg.toLocal8Bit();
+            QString contextString(QStringLiteral("(%1, %2, %3)")
+                                  .arg(context.file)
+                                  .arg(context.function)
+                                  .arg(context.line));
+
+            QString timeStr(QDateTime::currentDateTime().toString("dd-MM-yy HH:mm:ss:zzz"));
+
+            std::cerr << timeStr.toLocal8Bit().constData() << " - "
+                      << typeStr[type] << " "
+                      << contextString.toLocal8Bit().constData() << " "
+                      << localMsg.constData() << std::endl;
+
+            QTextStream out(&log_file);
+
+            out << timeStr.toLocal8Bit().constData() << " - "
+                << typeStr[type] << " "
+                << contextString.toLocal8Bit().constData() << " "
+                << localMsg.constData() << "\n";
+
+            if(type == QtFatalMsg)
+            {
+                abort();
+            }
+        }
     }
 
-    ww->rozlacz_wmi();
+    log_file.flush();
+    log_file.close();
 }
 
 ssd_optimizer::~ssd_optimizer()
@@ -70,6 +104,8 @@ void ssd_optimizer::write_gui()
     QPalette p_ahci;
     QString ahci = ww->sprawdz("Win32_IDEController", L"Caption");
 
+    qInfo() << "QString ahci = " << ahci;
+
     if(find_str(ahci, "AHCI")){
         ui->rb_ahci->setChecked(true);
         p_ahci.setColor(QPalette::WindowText, QColor(0, 170, 0));
@@ -85,6 +121,8 @@ void ssd_optimizer::write_gui()
     windows_service ws;
 
     bool state_win_search = ws.state_service("WSearch");
+
+    qInfo() << "bool state_win_search = " << state_win_search;
 
     if(state_win_search == true){
         ui->rb_win_search->setChecked(false);
@@ -102,7 +140,11 @@ void ssd_optimizer::write_gui()
     QPalette p_defrag;
     bool state_defrag = ws.state_service("defragsvc");
 
+    qInfo() << "bool state_defrag = " << state_defrag;
+
     QStringList service_defrag_state = ww->sprawdz_array("Win32_Service", L"StartMode", "Name = \"defragsvc\"");
+
+    qInfo() << "QStringList service_defrag_state = " << service_defrag_state;
 
     if(state_defrag == true || service_defrag_state[0] == "Manual" || service_defrag_state[0] == "Auto"){
         ui->rb_defrag->setChecked(false);
@@ -125,6 +167,8 @@ void ssd_optimizer::write_gui()
 
     QString s_trim = wc.read_cmd_command("fsutil.exe", trim);
 
+    qInfo() << "QString s_trim = " << s_trim;
+
     if(find_str(s_trim, "DisableDeleteNotify = 0")){
         ui->rb_trim->setChecked(true);
         ui->pb_trim->setEnabled(false);
@@ -141,9 +185,16 @@ void ssd_optimizer::write_gui()
     // Przesunięcie względem początku dysku
 
     QPalette p_przesuw_pocz;
+
     QStringList partition_name = ww->sprawdz_array("Win32_DiskPartition", L"Name");
+    qInfo() << "QStringList partition_name = " << partition_name;
+
     QStringList partition_size = ww->sprawdz_array("Win32_DiskPartition", L"Size");
+    qInfo() << "QStringList partition_size = " << partition_size;
+
     QStringList partition_offset = ww->sprawdz_array("Win32_DiskPartition", L"StartingOffset");
+    qInfo() << "QStringList partition_offset = " << partition_offset;
+
     partition = new QStringList[partition_name.size()];
     size = partition_name.size();
 
@@ -160,7 +211,7 @@ void ssd_optimizer::write_gui()
 
         partition[i] << partition_name[i] << partition_size[i] << QString::number(offset);
 
-        qDebug() << i << " : " << partition[i] << " zmienna b_offset to : " << b_offset;
+        qInfo() << "QStringList partition = " << partition[i];
     }
 
     if(b_offset){
@@ -182,23 +233,57 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
     QStandardItemModel* model = new QStandardItemModel(parent);
 
     QStringList disks_name = ww->sprawdz_array("Win32_DiskDrive", L"Model");
+    qInfo() << "QStringList disks_name = " << disks_name;
+
     QStringList disks_device_id = ww->sprawdz_array("Win32_DiskDrive", L"DeviceID");
+    qInfo() << "QStringList disks_device_id = " << disks_device_id;
+
     QStringList disks_size = ww->sprawdz_array("Win32_DiskDrive", L"Size");
+    qInfo() << "QStringList disks_size = " << disks_size;
+
     QStringList disks_serial_number = ww->sprawdz_array("Win32_DiskDrive", L"SerialNumber");
+    qInfo() << "QStringList disks_serial_number = " << disks_serial_number;
+
     QStringList disks_firmware_revision = ww->sprawdz_array("Win32_DiskDrive", L"FirmwareRevision");
+    qInfo() << "QStringList disks_firmware_revision = " << disks_firmware_revision;
+
     QStringList disks_total_cylinders = ww->sprawdz_array("Win32_DiskDrive", L"TotalCylinders");
+    qInfo() << "QStringList disks_total_cylinders = " << disks_total_cylinders;
+
     QStringList disks_total_sectors = ww->sprawdz_array("Win32_DiskDrive", L"TotalSectors");
+    qInfo() << "QStringList disks_total_sectors = " << disks_total_sectors;
+
     QStringList disks_total_tracks = ww->sprawdz_array("Win32_DiskDrive", L"TotalTracks");
+    qInfo() << "QStringList disks_total_tracks = " << disks_total_tracks;
+
     QStringList disks_tracks_per_cylinder = ww->sprawdz_array("Win32_DiskDrive", L"TotalSectors");
+    qInfo() << "QStringList disks_tracks_per_cylinder = " << disks_tracks_per_cylinder;
+
     QStringList disks_scsi_bus = ww->sprawdz_array("Win32_DiskDrive", L"SCSIBus");
+    qInfo() << "QStringList disks_scsi_bus = " << disks_scsi_bus;
+
     QStringList disks_index = ww->sprawdz_array("Win32_DiskDrive", L"Index");
+    qInfo() << "QStringList disks_index = " << disks_index;
+
 
     QStringList partitions_caption = ww->sprawdz_array("Win32_Volume", L"Caption", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_caption = " << partitions_caption;
+
     QStringList partitions_drive_letter = ww->sprawdz_array("Win32_Volume", L"DriveLetter", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_drive_letter = " << partitions_drive_letter;
+
     QStringList partitions_file_system = ww->sprawdz_array("Win32_Volume", L"FileSystem", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_file_system = " << partitions_file_system;
+
     QStringList partitions_free_space = ww->sprawdz_array("Win32_Volume", L"FreeSpace", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_free_space = " << partitions_free_space;
+
     QStringList partitions_total_space = ww->sprawdz_array("Win32_Volume", L"Capacity", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_total_space = " << partitions_total_space;
+
     QStringList partitions_label = ww->sprawdz_array("Win32_Volume", L"Label", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
+    qInfo() << "QStringList partitions_label = " << partitions_label;
+
     QStringList partitions_drive_index;
 
     windows_drive_identifiaction wdi;
@@ -216,19 +301,24 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
         else
             locate_partition = "\\\\.\\" + remove_slash;
 
-        qDebug() << locate_partition;
+        qInfo() << "QString locate_partition = " << locate_partition;
 
         partitions_drive_index << QString::number(wdi.get_index_disk_for_partition((const wchar_t*) locate_partition.utf16()));
-        qDebug() << partitions_drive_index[i];
+        qInfo() << "QStringList partitions_drive_index = " << partitions_drive_index[i];
     }
 
     int k = 0;
 
     for(int i = 0; i < disks_device_id.size(); i++)
     {
-        //if(wdi.device_trim_property((const wchar_t*) QString(disks_device_id.at(i)).utf16()) == true)
-        //{
+        bool is_trim = wdi.device_trim_property((const wchar_t*) QString(disks_device_id.at(i)).utf16());
+        qInfo() << "bool is_trim = " << is_trim << " is disks_device_id = " << disks_device_id.at(i);
+
+        if(is_trim == true)
+        {
             ULONGLONG partition_style = wdi.device_partition_info(IPT_PartitionStyle, (const wchar_t*) QString(disks_device_id.at(i)).utf16());
+            qInfo() << "ULONGLONG partition_style = " << partition_style << " is disks_device_id = " << disks_device_id.at(i);
+
             QString s_partition_style;
 
             if(partition_style == 0)
@@ -252,7 +342,7 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
             QStandardItem* disk_scsi_bus = new QStandardItem(QString("Port złącza : " + disks_scsi_bus.at(i)));
             QStandardItem* disk_partitions = new QStandardItem("Partycje");
 
-            QStandardItem* clear_line = new QStandardItem("");
+            QStandardItem* disk_clear_line = new QStandardItem("");
 
             disk_name->appendRow(disk_size);
             disk_name->appendRow(disk_id);
@@ -266,7 +356,7 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
             disk_name->appendRow(disk_total_tracks);
             disk_name->appendRow(disk_tracks_per_cylinder);
 
-            disk_name->appendRow(clear_line);
+            disk_name->appendRow(disk_clear_line);
 
             disk_name->appendRow(disk_partitions);
 
@@ -281,6 +371,8 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
                     QStandardItem* partition_total_space = new QStandardItem("Całkowita powierzchnia : " + calc_size(QString(partitions_total_space.at(j)).toULongLong()));
                     QStandardItem* partition_label = new QStandardItem("Nazwa woluminu : " + partitions_label.at(j));
 
+                    QStandardItem* partition_clear_line = new QStandardItem("");
+
                     disk_partitions->appendRow(partition_caption);
                     disk_partitions->appendRow(partition_drive_letter);
                     disk_partitions->appendRow(partition_file_system);
@@ -288,14 +380,14 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
                     disk_partitions->appendRow(partition_total_space);
                     disk_partitions->appendRow(partition_label);
 
-                    disk_partitions->appendRow(clear_line);
+                    disk_partitions->appendRow(partition_clear_line);
                 }
             }
 
             model->setItem(k, 0, disk_name);
 
             k += 2;
-        //}
+        }
     }
 
     model->setHorizontalHeaderItem(0, new QStandardItem("Nazwa"));

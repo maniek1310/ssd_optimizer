@@ -184,7 +184,7 @@ QString windows_wmi::sprawdz(string s_class, const wstring &s_name)
                     returns = "False";
             }
         }
-        qDebug() << returns << "    " << vtProp.vt << endl;
+        //qDebug() << returns << "    " << vtProp.vt << endl;
         VariantClear(&vtProp);
 
         return returns;

@@ -11,15 +11,11 @@ QString windows_registry::read_value_key(QString tree, QString key)
 
     QStringList ak = settings.childGroups();
 
-    qDebug() << ak;
-
     settings.beginGroup("CurrentVersion");
 
     QString path = settings.value("ProductId").toString().trimmed();
 
     settings.endGroup();
-
-    qDebug() << path;
 
     return "test";
 }

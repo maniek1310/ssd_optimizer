@@ -12,9 +12,9 @@ void organization_project::init_log()
 
 void organization_project::verboseMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    static const char* typeStr[] = {"[   Debug]", "[ Warning]", "[Critical]", "[   Fatal]" };
+    static const char* typeStr[] = {"[   Debug]", "[ Warning]", "[Critical]", "[   Fatal]", "[    Info]" };
 
-    if(type <= QtFatalMsg)
+    if(type <= QtInfoMsg)
     {
         QByteArray localMsg = msg.toLocal8Bit();
         QString contextString(QStringLiteral("(%1, %2, %3)")
@@ -34,4 +34,9 @@ void organization_project::verboseMessageHandler(QtMsgType type, const QMessageL
             abort();
         }
     }
+}
+
+void organization_project::create_log(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+
 }

@@ -32,13 +32,6 @@ QString windows_drive_identifiaction::device_adapter_property(LPCWSTR disks)
 
     QString busType;
 
-    /*std::wstring logicalDrive = L"\\\\.\\";
-    wchar_t drive[3];
-    drive[0] = partitions;
-    drive[1] = L':';
-    drive[2] = L'\0';
-    logicalDrive.append(drive);*/
-
     hDevice = CreateFile(
                 disks,
                 0,
@@ -134,14 +127,6 @@ bool windows_drive_identifiaction::device_trim_property(LPCWSTR disks)
 
     bool trim = false;
 
-    /*std::wstring logicalDrive = L"\\\\.\\";
-    wchar_t drive[3];
-    drive[0] = disks;
-    drive[1] = L':';
-    drive[2] = L'\0';
-    logicalDrive.append(drive);
-    */
-
     hDevice = CreateFile(
                 disks,
                 0,
@@ -172,16 +157,6 @@ bool windows_drive_identifiaction::device_trim_property(LPCWSTR disks)
 
 ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR disks, int nr_partitions)
 {
-    // "\\\\.\\PhysicalDrive0"
-    // L"\\\\.\\C:"
-
-    /*std::wstring logicalDrive = L"\\\\.\\";
-    wchar_t drive[3];
-    drive[0] = partitions;
-    drive[1] = L':';
-    drive[2] = L'\0';
-    logicalDrive.append(drive);*/
-
     ULONGLONG info_return;
 
     HANDLE hDevice = CreateFile(disks, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, 0);
@@ -206,13 +181,6 @@ ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR 
                 info_return = dgx.Geometry.SectorsPerTrack;
             else if(type == IPT_TracksPerCylinder)
                 info_return = dgx.Geometry.TracksPerCylinder;
-
-            /*qDebug() << "BytesPerSector : " << dgx.Geometry.BytesPerSector;
-            qDebug() << "Cylinders : " << dgx.Geometry.Cylinders.QuadPart;
-            qDebug() << "MediaType : " << dgx.Geometry.MediaType;
-            qDebug() << "SectorsPerTrack : " << dgx.Geometry.SectorsPerTrack;
-            qDebug() << "TracksPerCylinder : " << dgx.Geometry.TracksPerCylinder;
-            */
         }else{
             DWORD err = GetLastError();
             qDebug() << "Error : " << err << ", " << lastErrorToString(err).c_str();
@@ -235,16 +203,9 @@ ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR 
                 info_return = dlix->PartitionEntry[nr_partitions].RewritePartition;
             else if(type == IPT_StartingOffset)
                 info_return = dlix->PartitionEntry[nr_partitions].StartingOffset.QuadPart;
-
-            /*qDebug() << "PartitionLength : " << dlix->PartitionEntry[0].PartitionLength.QuadPart;
-            qDebug() << "PArtitionNumber : " << dlix->PartitionEntry[0].PartitionNumber;
-            qDebug() << "PartitionStyle  : " << dlix->PartitionEntry[0].PartitionStyle;
-            qDebug() << "RewritePartition: " << dlix->PartitionEntry[0].RewritePartition;
-            qDebug() << "StartingOffset  : " << dlix->PartitionEntry[0].StartingOffset.QuadPart;
-            */
         }else{
             DWORD err = GetLastError();
-            qDebug() << "Error : " << err << ", " << lastErrorToString(err).c_str();
+            qDebug() << "Error : " << err << ", " << lastErrorToString(err).c_str() << " dysk : " << QString::fromWCharArray(disks);
         }
     }
 
@@ -288,15 +249,11 @@ int windows_drive_identifiaction::get_index_disk_for_partition(LPCWSTR partition
         return -1;
     }
 
-    qDebug() << "The below is a information about";
-
     int index_disk = -1;
 
     for(DWORD n = 0; n < volumeDiskExtents.NumberOfDiskExtents; ++n)
     {
         PDISK_EXTENT pDiskExtent = &volumeDiskExtents.Extents[n];
-
-        qDebug() << "Disk number : " << pDiskExtent->DiskNumber;
 
         index_disk = pDiskExtent->DiskNumber;
     }

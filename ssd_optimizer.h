@@ -6,6 +6,12 @@
 #include <QTreeView>
 #include <QDebug>
 
+#include <QString>
+#include <QDateTime>
+#include <iostream>
+#include <QFile>
+#include <QTextStream>
+
 #include "windows_service.h"
 #include "windows_registry.h"
 #include "windows_console.h"
@@ -13,6 +19,8 @@
 #include "windows_drive_identifiaction.h"
 
 //#include "organization_project.h"
+
+void verboseMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 
 namespace Ui {
 class ssd_optimizer;
