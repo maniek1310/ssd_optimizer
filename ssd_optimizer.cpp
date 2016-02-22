@@ -10,12 +10,25 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    windows_registry wr;
+
+    if(wr.find_key_registry("HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters", "EnablePrefetcher")){
+        QMessageBox::information(this, "TEST", "TRUE", QMessageBox::Ok);
+    }else{
+        QMessageBox::information(this, "TEST", "FALSE", QMessageBox::Ok);
+    }
+
     if(QFile::exists("log.txt"))
         QFile::remove("log.txt");
 
     qInstallMessageHandler(verboseMessageHandler);
 
     ww->polacz_wmi();
+
+    QString tesst = "PNPDeviceID = PCI\\VEN_1022&DEV_7801&SUBSYS_B0021458&REV_40\\3&267A616A&0&88";
+
+    qInfo() << ww->sprawdz_array("Win32_PnpEntity", L"PNPDeviceID", "Service = \"storahci\"");
+    qInfo() << ww->sprawdz_array("Win32_PnPEntity", L"Service", tesst.toStdString());
 
     write_gui();
 
@@ -226,6 +239,60 @@ void ssd_optimizer::write_gui()
 
     ui->rb_przesuw_pocz->setDisabled(true);
     ui->rb_przesuw_pocz->setPalette(p_przesuw_pocz);
+
+    QPalette p_dziennik;
+    bool state_dziennik = ws.state_service("EventLog");
+
+    qInfo() << "bool state_dziennik = " << state_dziennik;
+
+    QStringList service_dziennik_state = ww->sprawdz_array("Win32_Service", L"StartMode", "Name = \"EventLog\"");
+
+    qInfo() << "QStringList service_dziennik_state = " << service_dziennik_state;
+
+    if(state_dziennik == true || service_dziennik_state[0] == "Manual" || service_dziennik_state[0] == "Auto"){
+        ui->rb_dziennik->setChecked(false);
+        ui->pb_dziennik->setEnabled(true);
+        p_dziennik.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }else if(state_dziennik == false){
+        ui->rb_dziennik->setChecked(true);
+        ui->pb_dziennik->setEnabled(false);
+        p_dziennik.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }
+
+    ui->rb_dziennik->setDisabled(true);
+    ui->rb_dziennik->setPalette(p_dziennik);
+
+    windows_registry wr;
+    QPalette p_prefetch;
+    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
+    QString key_prefetch = "EnablePrefetcher";
+    QString key_boot_trace = "EnableBootTrace";
+    QString key_super_fetch = "EnableSuperfetch";
+
+    QString value_prefetch = wr.read_value_key(tree_prefetch, key_prefetch);
+    QString value_boot_trace = "NULL";
+    QString value_super_fetch = "NULL";
+
+    if(wr.find_key_registry(tree_prefetch, key_boot_trace))
+        value_boot_trace = wr.read_value_key(tree_prefetch, key_boot_trace);
+
+    if(wr.find_key_registry(tree_prefetch, key_super_fetch))
+        value_super_fetch = wr.read_value_key(tree_prefetch, key_super_fetch);
+
+    qInfo() << "QString value_prefetch = " << value_prefetch;
+
+    if(value_prefetch == "0" && (value_boot_trace == "NULL" || value_boot_trace == "0") && (value_super_fetch == "NULL" || value_super_fetch == "0")){
+        ui->rb_prefetch->setChecked(true);
+        ui->pb_prefetch->setEnabled(false);
+        p_prefetch.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        ui->rb_prefetch->setChecked(false);
+        ui->pb_prefetch->setEnabled(true);
+        p_prefetch.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_prefetch->setDisabled(true);
+    ui->rb_prefetch->setPalette(p_prefetch);
 }
 
 QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
@@ -405,6 +472,8 @@ void ssd_optimizer::on_pb_win_search_clicked()
 
     bool state_win_search = ws.state_service("WSearch");
 
+    qInfo() << "bool state_win_search = " << state_win_search;
+
     if(state_win_search == true){
         QMessageBox::information(this, "SSD Optimizer", "Nie udało się wyłączyć usługi Windows Search", QMessageBox::Ok);
     }else if(state_win_search == false){
@@ -426,6 +495,8 @@ void ssd_optimizer::on_pb_trim_clicked()
     trim << "behavior" << "set" << "DisableDeleteNotify" << "0";
 
     QString s_trim = wc.read_cmd_command("fsutil.exe", trim);
+
+    qInfo() << "QString s_trim = " << s_trim;
 
     if(find_str(s_trim, "DisableDeleteNotify = 0")){
         ui->rb_trim->setChecked(true);
@@ -450,6 +521,7 @@ void ssd_optimizer::on_pb_defrag_clicked()
     ws.start_service("defragsvc", false);
 
     bool state_defrag = ws.state_service("defragsvc");
+    qInfo() << "bool state_defrag = " << state_defrag;
 
     if(state_defrag == true){
         QMessageBox::information(this, "SSD Optimizer", "Nie udało się wyłączyć usługi Optymalizacji Dysków", QMessageBox::Ok);
@@ -482,4 +554,80 @@ void ssd_optimizer::on_pb_przesuw_pocz_clicked()
     }
 
     QMessageBox::information(this, "SSD Optimizer", text, QMessageBox::Ok);
+}
+
+void ssd_optimizer::on_pb_dziennik_clicked()
+{
+    QString service_name = "EventLog";
+    QPalette p_dziennik;
+    windows_service ws;
+
+    ws.enable_service(service_name, false);
+    ws.start_service(service_name, false);
+
+    bool state_dziennik = ws.state_service(service_name);
+    qInfo() << "bool state_dziennik = " << state_dziennik;
+
+    if(state_dziennik == true){
+        QMessageBox::information(this, "SSD Optimizer", "Aby wyłączyć usługę Dziennika zdarzeń systemu Windows, należy ponownie uruchomić komputer.", QMessageBox::Ok);
+        p_dziennik.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }else if(state_dziennik == false){
+        ui->rb_dziennik->setChecked(true);
+        ui->pb_dziennik->setEnabled(false);
+        p_dziennik.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }
+
+    ui->rb_dziennik->setDisabled(true);
+    ui->rb_dziennik->setPalette(p_dziennik);
+}
+
+void ssd_optimizer::on_pb_prefetch_clicked()
+{
+    windows_registry wr;
+    QPalette p_prefetch;
+
+    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
+    QString key_prefetch = "EnablePrefetcher";
+    QString key_boot_trace = "EnableBootTrace";
+    QString key_super_fetch = "EnableSuperfetch";
+
+    bool find_prefetch = wr.find_key_registry(tree_prefetch, key_prefetch);
+    bool find_bool_trace = wr.find_key_registry(tree_prefetch, key_boot_trace);
+    bool find_super_fetch = wr.find_key_registry(tree_prefetch, key_super_fetch);
+
+    bool result_prefetch = false;
+    bool result_boot_trace = false;
+    bool result_super_fetch = false;
+
+    int value = 0;
+
+    if(find_prefetch)
+        result_prefetch = wr.set_value_key(tree_prefetch, key_prefetch, value);
+
+    if(find_bool_trace)
+        result_boot_trace = wr.set_value_key(tree_prefetch, key_boot_trace, value);
+
+    if(find_super_fetch)
+        result_super_fetch = wr.set_value_key(tree_prefetch, key_super_fetch, value);
+
+    qInfo() << "bool find_prefetch = " << find_prefetch;
+    qInfo() << "bool find_bool_trace = " << find_bool_trace;
+    qInfo() << "bool find_super_fetch = " << find_super_fetch;
+    qInfo() << "bool result_prefetch = " << result_prefetch;
+    qInfo() << "bool result_boot_trace = " << result_boot_trace;
+    qInfo() << "bool result_super_fetch = " << result_super_fetch;
+
+
+    if((find_prefetch && result_prefetch) || ((find_prefetch && result_prefetch) && (find_bool_trace && result_boot_trace) && (find_super_fetch && result_super_fetch))){
+        QMessageBox::information(this, "SSD Optimizer", "Aby ukończyć proces wyłączenie Prefetch należy ponownie uruchomić komputer", QMessageBox::Ok);
+        ui->rb_prefetch->setChecked(true);
+        ui->pb_prefetch->setEnabled(false);
+        p_prefetch.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        QMessageBox::information(this, "SSD Optimizer", "Nie udało się wyłączyć funkcji Prefetch.", QMessageBox::Ok);
+        p_prefetch.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_prefetch->setDisabled(true);
+    ui->rb_prefetch->setPalette(p_prefetch);
 }

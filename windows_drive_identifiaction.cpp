@@ -14,6 +14,8 @@ wstring windows_drive_identifiaction::lastErrorToString(DWORD err)
     size_t size = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                                 NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL);
     wstring message(messageBuffer, size);
+    qWarning() << "wstring message = " << QString::fromWCharArray(message.c_str());
+
     LocalFree(messageBuffer);
 
     return message;
@@ -54,65 +56,82 @@ QString windows_drive_identifiaction::device_adapter_property(LPCWSTR disks)
             {
             case BusTypeUnknown:
                 busType = "Unkown";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeScsi:
                 busType = "SCSI";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeAtapi:
                 busType = "ATAPI";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeAta:
                 busType = "ATA";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusType1394:
                 busType = "IEEE 1394";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeSsa:
                 busType = "SSA";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeFibre:
                 busType = "FIBER CHANNEL";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeUsb:
                 busType = "USB";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeRAID:
                 busType = "RAID";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeiScsi:
                 busType = "iSCSI";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeSas:
                 busType = "SAS";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeSata:
                 busType = "SATA";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeSd:
                 busType = "SD";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeMmc:
                 busType = "MMC";
+                qInfo() << "QString busType = " << busType;
                 break;
 
             case BusTypeVirtual:
                 busType = "VIRTUAL";
+                qInfo() << "QString busType = " << busType;
                 break;
             }
         }
+    }else{
+        qWarning() << "HANDLE hDevice = " << INVALID_HANDLE_VALUE;
     }
 
     CloseHandle(hDevice);
@@ -150,6 +169,8 @@ bool windows_drive_identifiaction::device_trim_property(LPCWSTR disks)
         }else{
             qDebug() << "TRIM : " << "?" << " ERR : " << ::GetLastError();
         }
+    }else{
+        qWarning() << "HANDLE hDevice = " << INVALID_HANDLE_VALUE;
     }
 
     return trim;
@@ -171,16 +192,22 @@ ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR 
 
         if(result)
         {
-            if(type == IPT_BytesPerSector)
+            if(type == IPT_BytesPerSector){
                 info_return = dgx.Geometry.BytesPerSector;
-            else if(type == IPT_Cylinders)
+                qInfo() << "DISK_GEOMETRY_EX dgx.Geometry.BytesPerSector = " << dgx.Geometry.BytesPerSector;
+            }else if(type == IPT_Cylinders){
                 info_return = dgx.Geometry.Cylinders.QuadPart;
-            else if(type == IPT_MediaType)
+                qInfo() << "DISK_GEOMETRY_EX dgx.Geometry.Cylinders.QuadPart = " << dgx.Geometry.Cylinders.QuadPart;
+            }else if(type == IPT_MediaType){
                 info_return = dgx.Geometry.MediaType;
-            else if(type == IPT_SectorsPerTrack)
+                qInfo() << "DISK_GEOMETRY_EX dgx.Geometry.MediaType = " << dgx.Geometry.MediaType;
+            }else if(type == IPT_SectorsPerTrack){
                 info_return = dgx.Geometry.SectorsPerTrack;
-            else if(type == IPT_TracksPerCylinder)
+                qInfo() << "DISK_GEOMETRY_EX dgx.Geometry.SectorsPerTrack = " << dgx.Geometry.SectorsPerTrack;
+            }else if(type == IPT_TracksPerCylinder){
                 info_return = dgx.Geometry.TracksPerCylinder;
+                qInfo() << "DISK_GEOMETRY_EX dgx.Geometry.TracksPerCylinder = " << dgx.Geometry.TracksPerCylinder;
+            }
         }else{
             DWORD err = GetLastError();
             qDebug() << "Error : " << err << ", " << lastErrorToString(err).c_str();
@@ -193,20 +220,28 @@ ULONGLONG windows_drive_identifiaction::device_partition_info(int type, LPCWSTR 
 
         if(result)
         {
-            if(type == IPT_PartitionLength)
+            if(type == IPT_PartitionLength){
                 info_return = dlix->PartitionEntry[nr_partitions].PartitionLength.QuadPart;
-            else if(type == IPT_PartitionNumber)
+                qInfo() << "DRIVE_LAYOUT_INFORMATION_EX dlix->PartitionEntry[nr_partitions].PartitionLength.QuadPart = " << dlix->PartitionEntry[nr_partitions].PartitionLength.QuadPart;
+            }else if(type == IPT_PartitionNumber){
                 info_return = dlix->PartitionEntry[nr_partitions].PartitionNumber;
-            else if(type == IPT_PartitionStyle)
+                qInfo() << "DRIVE_LAYOUT_INFORMATION_EX dlix->PartitionEntry[nr_partitions].PartitionNumber = " << dlix->PartitionEntry[nr_partitions].PartitionNumber;
+            }else if(type == IPT_PartitionStyle){
                 info_return = dlix->PartitionEntry[nr_partitions].PartitionStyle;
-            else if(type == IPT_RewritePartition)
+                qInfo() << "DRIVE_LAYOUT_INFORMATION_EX dlix->PartitionEntry[nr_partitions].PartitionStyle = " << dlix->PartitionEntry[nr_partitions].PartitionStyle;
+            }else if(type == IPT_RewritePartition){
                 info_return = dlix->PartitionEntry[nr_partitions].RewritePartition;
-            else if(type == IPT_StartingOffset)
+                qInfo() << "DRIVE_LAYOUT_INFORMATION_EX dlix->PartitionEntry[nr_partitions].RewritePartition = " << dlix->PartitionEntry[nr_partitions].RewritePartition;
+            }else if(type == IPT_StartingOffset){
                 info_return = dlix->PartitionEntry[nr_partitions].StartingOffset.QuadPart;
+                qInfo() << "DRIVE_LAYOUT_INFORMATION_EX dlix->PartitionEntry[nr_partitions].StartingOffset.QuadPart = " << dlix->PartitionEntry[nr_partitions].StartingOffset.QuadPart;
+            }
         }else{
             DWORD err = GetLastError();
             qDebug() << "Error : " << err << ", " << lastErrorToString(err).c_str() << " dysk : " << QString::fromWCharArray(disks);
         }
+    }else{
+        qWarning() << "HANDLE hDevice = " << INVALID_HANDLE_VALUE;
     }
 
     return info_return;
@@ -256,6 +291,8 @@ int windows_drive_identifiaction::get_index_disk_for_partition(LPCWSTR partition
         PDISK_EXTENT pDiskExtent = &volumeDiskExtents.Extents[n];
 
         index_disk = pDiskExtent->DiskNumber;
+
+        qInfo() << "int index_disk = " << index_disk;
     }
 
     return index_disk;

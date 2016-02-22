@@ -161,7 +161,10 @@ QString windows_wmi::sprawdz(string s_class, const wstring &s_name)
     {
         HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
 
-        if(0 == uReturn || FAILED(hr))
+        if(FAILED(hr))
+            return "ERROR";
+
+        if(0 == uReturn)
             break;
 
         VARIANT vtProp;
@@ -170,9 +173,7 @@ QString windows_wmi::sprawdz(string s_class, const wstring &s_name)
 
         if(!FAILED(hr))
         {
-            if((vtProp.vt==VT_NULL) || (vtProp.vt==VT_EMPTY)){                          // empty or null
-                wcout << " " << ((vtProp.vt==VT_NULL) ? "NULL" : "EMPTY") << endl;
-            }else if(vtProp.vt == VT_BSTR){                                             // string
+            if(vtProp.vt == VT_BSTR){                                             // string
                 returns = QString::fromStdWString(vtProp.bstrVal);
             }else if(vtProp.vt == VT_I4){                                               // 4-byte signed integer
                 returns = QString::number(vtProp.uintVal);
@@ -182,6 +183,11 @@ QString windows_wmi::sprawdz(string s_class, const wstring &s_name)
                     returns = "True";
                 else
                     returns = "False";
+            }else if((vtProp.vt==VT_NULL) || (vtProp.vt==VT_EMPTY)){                          // empty or null
+                returns = ((vtProp.vt==VT_NULL) ? "NULL" : "EMPTY");
+            }else{
+                qWarning() << "VARIANT vtProp = " << vtProp.vt;
+                returns = "ERROR";
             }
         }
         //qDebug() << returns << "    " << vtProp.vt << endl;
@@ -234,7 +240,7 @@ QStringList windows_wmi::sprawdz_array(string s_class, const wstring &s_name, st
     if (FAILED(hres))
     {
         //qDebug() << ("Query for operating system name failed. Error code = 0x" + hres);
-        cout << "Query for operating system name failed." << " Error code = 0x" << hex << hres << endl;
+        qWarning() << "Query for operating system name failed." << " Error code = 0x" << hex << hres << endl;
         pSvc->Release();
         pLoc->Release();
         CoUninitialize();
@@ -249,12 +255,22 @@ QStringList windows_wmi::sprawdz_array(string s_class, const wstring &s_name, st
     ULONG uReturn = 0;
     QStringList returns_list;
 
+    HRESULT hr;
+
     while (pEnumerator)
     {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+        hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
 
-        if(0 == uReturn || FAILED(hr))
+        if(FAILED(hr))
+        {
+            qWarning() << "FAILED hr = " << hr;
+            return QStringList("ERROR");
+        }
+
+        if(uReturn == 0)
+        {
             break;
+        }
 
         VARIANT vtProp;
 
@@ -262,9 +278,7 @@ QStringList windows_wmi::sprawdz_array(string s_class, const wstring &s_name, st
 
         if(!FAILED(hr))
         {
-            if((vtProp.vt==VT_NULL) || (vtProp.vt==VT_EMPTY)){                          // empty or null
-                returns_list << "";
-            }else if(vtProp.vt == VT_BSTR){                                             // string
+            if(vtProp.vt == VT_BSTR){                                             // string
                 returns_list << QString::fromStdWString(vtProp.bstrVal);
             }else if(vtProp.vt == VT_I4){                                               // 4-byte signed integer
                returns_list << QString::number(vtProp.uintVal);
@@ -297,6 +311,11 @@ QStringList windows_wmi::sprawdz_array(string s_class, const wstring &s_name, st
                        returns_list << tessa1 + " / " + tessa2;
                     }
                 }
+            }else if((vtProp.vt==VT_NULL) || (vtProp.vt==VT_EMPTY)){                          // empty or null
+                returns_list << ((vtProp.vt==VT_NULL) ? "NULL" : "EMPTY");
+            }else{
+                qWarning() << "VARIANT vtProp = " << vtProp.vt;
+                returns_list << "ERROR";
             }
         }
 
@@ -304,13 +323,7 @@ QStringList windows_wmi::sprawdz_array(string s_class, const wstring &s_name, st
         VariantClear(&vtProp);
     }
 
-    //QString system_name, system_architecture, system_version, system_service_pack, system_name_computer,
-    //        system_work_group, system_organization, system_instalation, system_serial_number, system_language;
-
-    // Cleanup
-    // ========
-
-    pclsObj->Release();
+    //pclsObj->Release();
     pEnumerator->Release();
     if(!pclsObj) pclsObj->Release();
 

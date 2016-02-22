@@ -7,15 +7,37 @@ windows_registry::windows_registry()
 
 QString windows_registry::read_value_key(QString tree, QString key)
 {
-    QSettings settings("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion", QSettings::NativeFormat);
+    QSettings settings(tree, QSettings::NativeFormat);
 
-    QStringList ak = settings.childGroups();
+    QString value = settings.value(key, "NULL").toString();
 
-    settings.beginGroup("CurrentVersion");
+    return value;
+}
 
-    QString path = settings.value("ProductId").toString().trimmed();
+bool windows_registry::set_value_key(QString tree, QString key, int value)
+{
+    QSettings settings(tree, QSettings::NativeFormat);
 
-    settings.endGroup();
+    settings.setValue(key, value);
 
-    return "test";
+    QString check = settings.value(key, "NULL").toString();
+
+    if(QString::number(value) == check)
+        return true;
+
+    return false;
+}
+
+bool windows_registry::find_key_registry(QString tree, QString key)
+{
+    QSettings settings(tree, QSettings::NativeFormat);
+
+    QStringList all_keys = settings.allKeys();
+
+    foreach(QString v, all_keys){
+        if(v == key)
+            return true;
+    }
+
+    return false;
 }

@@ -47,6 +47,10 @@ private slots:
 
     void on_pb_przesuw_pocz_clicked();
 
+    void on_pb_dziennik_clicked();
+
+    void on_pb_prefetch_clicked();
+
 private:
     Ui::ssd_optimizer *ui;
     windows_wmi *ww;
