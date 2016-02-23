@@ -10,25 +10,12 @@ ssd_optimizer::ssd_optimizer(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    windows_registry wr;
-
-    if(wr.find_key_registry("HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters", "EnablePrefetcher")){
-        QMessageBox::information(this, "TEST", "TRUE", QMessageBox::Ok);
-    }else{
-        QMessageBox::information(this, "TEST", "FALSE", QMessageBox::Ok);
-    }
-
     if(QFile::exists("log.txt"))
         QFile::remove("log.txt");
 
     qInstallMessageHandler(verboseMessageHandler);
 
     ww->polacz_wmi();
-
-    QString tesst = "PNPDeviceID = PCI\\VEN_1022&DEV_7801&SUBSYS_B0021458&REV_40\\3&267A616A&0&88";
-
-    qInfo() << ww->sprawdz_array("Win32_PnpEntity", L"PNPDeviceID", "Service = \"storahci\"");
-    qInfo() << ww->sprawdz_array("Win32_PnPEntity", L"Service", tesst.toStdString());
 
     write_gui();
 
@@ -110,16 +97,25 @@ QString ssd_optimizer::calc_size(ULONGLONG size)
 
 void ssd_optimizer::write_gui()
 {
+    windows_registry wr;
+
     QStandardItemModel* model = createModel(this);
 
     ui->treeView->setModel(model);
 
     QPalette p_ahci;
-    QString ahci = ww->sprawdz("Win32_IDEController", L"Caption");
 
-    qInfo() << "QString ahci = " << ahci;
+    QStringList ahci = ww->sprawdz_array("Win32_PnPEntity", L"Service", "Service = \"msahci\" OR Service = \"storahci\" OR Service = \"iaStorV\"");
+    qInfo() << "QStringList ahci = " << ahci;
 
-    if(find_str(ahci, "AHCI")){
+    QString tree_ahci = "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" + ahci.at(0);
+    QString key_ahci = "Start";
+
+    QString ahci_reg = wr.read_value_key(tree_ahci, key_ahci);
+
+    qInfo() << "QString ahci_reg = " << ahci_reg;
+
+    if(!ahci.isEmpty() && ahci_reg == "0"){
         ui->rb_ahci->setChecked(true);
         p_ahci.setColor(QPalette::WindowText, QColor(0, 170, 0));
     }else{
@@ -262,7 +258,6 @@ void ssd_optimizer::write_gui()
     ui->rb_dziennik->setDisabled(true);
     ui->rb_dziennik->setPalette(p_dziennik);
 
-    windows_registry wr;
     QPalette p_prefetch;
     QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
     QString key_prefetch = "EnablePrefetcher";
@@ -332,6 +327,8 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
     QStringList disks_index = ww->sprawdz_array("Win32_DiskDrive", L"Index");
     qInfo() << "QStringList disks_index = " << disks_index;
 
+    QStringList disks_ahci = ww->sprawdz_array("Win32_PnPEntity", L"Service", "Service = \"msahci\" OR Service = \"storahci\" OR Service = \"iaStorV\"");
+    qInfo() << "QStringList disks_ahci = " << disks_ahci;
 
     QStringList partitions_caption = ww->sprawdz_array("Win32_Volume", L"Caption", "FileSystem = \"FAT32\" OR FileSystem = \"exFAT\" OR FileSystem = \"NTFS\"");
     qInfo() << "QStringList partitions_caption = " << partitions_caption;
@@ -396,6 +393,7 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
                 s_partition_style = "RAW";
 
             QStandardItem* disk_name = new QStandardItem(disks_name.at(i));
+            QStandardItem* disk_ahci = new QStandardItem("AHCI : " + disks_ahci.at(0));
             QStandardItem* disk_size = new QStandardItem(QString("Rozmiar dysku : " + calc_size(QString(disks_size.at(i)).toULongLong())));
             QStandardItem* disk_id   = new QStandardItem(QString("Identyfikator : " + disks_device_id.at(i)));
             QStandardItem* disk_serial_number = new QStandardItem(QString("Numer seryjny : " + disks_serial_number.at(i)));
@@ -411,6 +409,7 @@ QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
 
             QStandardItem* disk_clear_line = new QStandardItem("");
 
+            disk_name->appendRow(disk_ahci);
             disk_name->appendRow(disk_size);
             disk_name->appendRow(disk_id);
             disk_name->appendRow(disk_serial_number);
