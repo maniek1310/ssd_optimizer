@@ -11,6 +11,7 @@
 #include <iostream>
 #include <QFile>
 #include <QTextStream>
+#include <QDir>
 
 #include "windows_service.h"
 #include "windows_registry.h"
@@ -50,6 +51,8 @@ private slots:
     void on_pb_dziennik_clicked();
 
     void on_pb_prefetch_clicked();
+
+    void on_pb_ntfs_8dot3_clicked();
 
 private:
     Ui::ssd_optimizer *ui;

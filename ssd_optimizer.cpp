@@ -258,15 +258,26 @@ void ssd_optimizer::write_gui()
     ui->rb_dziennik->setDisabled(true);
     ui->rb_dziennik->setPalette(p_dziennik);
 
+    //SysMain
+
     QPalette p_prefetch;
-    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
+    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
     QString key_prefetch = "EnablePrefetcher";
     QString key_boot_trace = "EnableBootTrace";
     QString key_super_fetch = "EnableSuperfetch";
+    QString service_prefetch = "SysMain";
 
     QString value_prefetch = wr.read_value_key(tree_prefetch, key_prefetch);
     QString value_boot_trace = "NULL";
     QString value_super_fetch = "NULL";
+
+    bool state_prefetch = ws.state_service(service_prefetch);
+
+    qInfo() << "bool state_prefetch = " << state_prefetch;
+
+    QStringList service_prefetch_state = ww->sprawdz_array("Win32_Service", L"StartMode", "Name = \"SysMain\"");
+
+    qInfo() << "QStringList service_prefetch_state = " << service_prefetch_state;
 
     if(wr.find_key_registry(tree_prefetch, key_boot_trace))
         value_boot_trace = wr.read_value_key(tree_prefetch, key_boot_trace);
@@ -276,7 +287,7 @@ void ssd_optimizer::write_gui()
 
     qInfo() << "QString value_prefetch = " << value_prefetch;
 
-    if(value_prefetch == "0" && (value_boot_trace == "NULL" || value_boot_trace == "0") && (value_super_fetch == "NULL" || value_super_fetch == "0")){
+    if((state_prefetch == false && service_prefetch_state[0] != "Manual" && service_prefetch_state[0] != "Auto") && value_prefetch == "0" && (value_boot_trace == "NULL" || value_boot_trace == "0") && (value_super_fetch == "NULL" || value_super_fetch == "0")){
         ui->rb_prefetch->setChecked(true);
         ui->pb_prefetch->setEnabled(false);
         p_prefetch.setColor(QPalette::WindowText, QColor(0, 170, 0));
@@ -288,6 +299,29 @@ void ssd_optimizer::write_gui()
 
     ui->rb_prefetch->setDisabled(true);
     ui->rb_prefetch->setPalette(p_prefetch);
+
+    QPalette p_ntfs_8dot3;
+    QString tree_ntfs_8dot3 = "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+    QString key_ntfs_8dot3 = "NtfsDisable8dot3NameCreation";
+    QString value_ntfs_8dot3 = "NULL";
+
+    if(wr.find_key_registry(tree_ntfs_8dot3, key_ntfs_8dot3))
+        value_ntfs_8dot3 = wr.read_value_key(tree_ntfs_8dot3, key_ntfs_8dot3);
+
+    qInfo() << "QString value_ntfs_8dot3 = " << value_ntfs_8dot3;
+
+    if(value_ntfs_8dot3 == "1" || value_ntfs_8dot3 == "NULL"){
+        ui->rb_ntfs_8dot3->setChecked(true);
+        ui->pb_ntfs_8dot3->setEnabled(false);
+        p_ntfs_8dot3.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        ui->rb_ntfs_8dot3->setCheckable(false);
+        ui->pb_ntfs_8dot3->setEnabled(true);
+        p_ntfs_8dot3.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_ntfs_8dot3->setDisabled(true);
+    ui->rb_ntfs_8dot3->setPalette(p_ntfs_8dot3);
 }
 
 QStandardItemModel *ssd_optimizer::createModel(QObject *parent)
@@ -583,12 +617,14 @@ void ssd_optimizer::on_pb_dziennik_clicked()
 void ssd_optimizer::on_pb_prefetch_clicked()
 {
     windows_registry wr;
+    windows_service ws;
     QPalette p_prefetch;
 
-    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
+    QString tree_prefetch = "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
     QString key_prefetch = "EnablePrefetcher";
     QString key_boot_trace = "EnableBootTrace";
     QString key_super_fetch = "EnableSuperfetch";
+    QString service_prefetch = "SysMain";
 
     bool find_prefetch = wr.find_key_registry(tree_prefetch, key_prefetch);
     bool find_bool_trace = wr.find_key_registry(tree_prefetch, key_boot_trace);
@@ -599,6 +635,13 @@ void ssd_optimizer::on_pb_prefetch_clicked()
     bool result_super_fetch = false;
 
     int value = 0;
+
+    ws.enable_service(service_prefetch, false);
+    ws.start_service(service_prefetch, false);
+
+    bool state_prefetch = ws.state_service(service_prefetch);
+
+    qInfo() << "bool state_prefetch = " << state_prefetch;
 
     if(find_prefetch)
         result_prefetch = wr.set_value_key(tree_prefetch, key_prefetch, value);
@@ -617,7 +660,7 @@ void ssd_optimizer::on_pb_prefetch_clicked()
     qInfo() << "bool result_super_fetch = " << result_super_fetch;
 
 
-    if((find_prefetch && result_prefetch) || ((find_prefetch && result_prefetch) && (find_bool_trace && result_boot_trace) && (find_super_fetch && result_super_fetch))){
+    if(state_prefetch == false && ((find_prefetch && result_prefetch) || ((find_prefetch && result_prefetch) && (find_bool_trace && result_boot_trace) && (find_super_fetch && result_super_fetch)))){
         QMessageBox::information(this, "SSD Optimizer", "Aby ukończyć proces wyłączenie Prefetch należy ponownie uruchomić komputer", QMessageBox::Ok);
         ui->rb_prefetch->setChecked(true);
         ui->pb_prefetch->setEnabled(false);
@@ -627,6 +670,60 @@ void ssd_optimizer::on_pb_prefetch_clicked()
         p_prefetch.setColor(QPalette::WindowText, QColor(170, 0, 0));
     }
 
+    QStringList env_list(QProcess::systemEnvironment());
+
+    int idx = env_list.indexOf(QRegExp("^WINDIR=.*", Qt::CaseInsensitive));
+    if(idx > -1)
+    {
+        QStringList windir = env_list[idx].split('=');
+
+        QString windir_prefetch = windir[1] + "\\Prefetch";
+
+        QDir dir( windir_prefetch );
+
+        dir.setFilter( QDir::NoDotAndDotDot | QDir::Files );
+        foreach( QString dirItem, dir.entryList() )
+            dir.remove( dirItem );
+
+        dir.setFilter( QDir::NoDotAndDotDot | QDir::Dirs );
+        foreach( QString dirItem, dir.entryList() )
+        {
+            QDir subDir( dir.absoluteFilePath( dirItem ) );
+            subDir.removeRecursively();
+        }
+    }
+
     ui->rb_prefetch->setDisabled(true);
     ui->rb_prefetch->setPalette(p_prefetch);
+}
+
+void ssd_optimizer::on_pb_ntfs_8dot3_clicked()
+{
+    windows_registry wr;
+    QPalette p_ntfs_8dot3;
+
+    QString tree_ntfs_8dot3 = "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+    QString key_ntfs_8dot3 = "NtfsDisable8dot3NameCreation";
+
+    bool result_ntfs_8dot3 = false;
+
+    int value = 1;
+
+    if(wr.find_key_registry(tree_ntfs_8dot3, key_ntfs_8dot3))
+        result_ntfs_8dot3 = wr.set_value_key(tree_ntfs_8dot3, key_ntfs_8dot3, value);
+
+    qInfo() << "bool result_ntfs_8dot3 = " << result_ntfs_8dot3;
+
+    if(result_ntfs_8dot3){
+        QMessageBox::information(this, "SSD Optimizer", "Aby ukończyć proces wyłączenia tworzenia nazw 8.3 należy ponownie uruchomić komputer", QMessageBox::Ok);
+        ui->rb_ntfs_8dot3->setChecked(true);
+        ui->pb_ntfs_8dot3->setEnabled(false);
+        p_ntfs_8dot3.setColor(QPalette::WindowText, QColor(0, 170, 0));
+    }else{
+        QMessageBox::information(this, "SSD Optimizer", "Nie udało się wyłączyć funkcji tworzenia nazw 8.3.", QMessageBox::Ok);
+        p_ntfs_8dot3.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    }
+
+    ui->rb_ntfs_8dot3->setDisabled(true);
+    ui->rb_ntfs_8dot3->setPalette(p_ntfs_8dot3);
 }
